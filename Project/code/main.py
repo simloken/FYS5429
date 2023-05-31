@@ -137,3 +137,5 @@ def paths_traced_pass_obj(name=None, heat=False):
             nn.predict()
     
     paths_traced(nn, heat)
+    
+plot_all_losses()

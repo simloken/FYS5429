@@ -12,7 +12,7 @@ class Tensorflow:
     A class for creating and training TensorFlow neural network models for solving double pendulum problems.
 
     Parameters:
-    NNType (str): The type of neural network to be used ('NN', 'CNN', 'RNN'). Defaults to None.
+    NNType (str): The type of neural network to be used ('NN', 'CNN', 'RNN'). Defaults to NN or None.
     initialsFile (str): The file path to the initial conditions data. Defaults to '../data/initials.txt'.
     solutionFile (str): The file path to the double pendulum solution data. Defaults to '../data/double_pendulum.txt'.
     ratio (float): The ratio of data to be used for training. Defaults to 0.8.
@@ -25,7 +25,7 @@ class Tensorflow:
     result_scaler (sklearn.preprocessing.MinMaxScaler): A scaler object for normalizing the solution data.
     lossList (list): A list to store the training loss values.
     is_trained (bool): Indicates if the model has been trained.
-    t (tf.Variable): A TensorFlow variable for tracking the training progress.
+    t (tf.Variable): A TensorFlow variable used for the custom loss function. UNUSED
     model (tf.keras.Model): The TensorFlow neural network model.
 
     Methods:

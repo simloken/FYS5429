@@ -97,10 +97,10 @@ int main() {
         L2 = min_L + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_L - min_L))); // length of pendulum 2 in m
         M1 = min_M + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_M - min_M))); // mass of pendulum 1 in kg
         M2 = min_M + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_M - min_M))); // mass of pendulum 2 in kg
-        o1 = min_o + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_o - min_o)));
-        o2 = min_o + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_o - min_o)));
-        t1 = min_t + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_t - min_t)));
-        t2 = min_t + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_t - min_t)));
+        o1 = min_o + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_o - min_o))); // angular velocity of pendulum 1 in m/s
+        o2 = min_o + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_o - min_o))); // angular velocity of pendulum 2 in m/s
+        t1 = min_t + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_t - min_t))); // angle of pendulum 1 in radians relative to the vertical
+        t2 = min_t + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_t - min_t))); // angle of pendulum 2 in radians relative to the vertical
         double y[n] = {t1, t2, o1, o2}; // initial values of theta1, theta2, omega1, and omega2
         
 
