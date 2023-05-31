@@ -1,0 +1,7 @@
+
+*.h5
+*.pk1
+Project/cached/CNN_losses.txt
+Project/cached/NN_losses.txt
+Project/cached/RNN_losses.txt
+*.exe
