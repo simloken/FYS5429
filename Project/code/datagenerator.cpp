@@ -91,7 +91,7 @@ int main() {
     std::ofstream initialsFile;
     initialsFile.open("../data/initials.txt");
 
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 10000; i++) {
         double t = 0.0;
         L1 = min_L + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_L - min_L))); // length of pendulum 1 in m
         L2 = min_L + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (max_L - min_L))); // length of pendulum 2 in m

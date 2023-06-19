@@ -1,8 +1,9 @@
 from networks import Tensorflow
 from data import read_file, strip_time
-from plotter import animate_double_pendulum, plot_losses, plot_traced_path
+from plotter import animate_double_pendulum, plot_losses, plot_traced_path, overlay_heatmaps
+import os
 
-def plot_random_sample(obj=None, save=None):
+def plot_random_sample(obj=None, fname=None, save=None, denoise=False):
     """
     Plot the animation of a random or predicted sample of a double pendulum.
 
@@ -22,7 +23,7 @@ def plot_random_sample(obj=None, save=None):
         title = 'Double Pendulum movement of a random %s predicted sample' %(modelType)
         
         
-    animate_double_pendulum(initials_data, double_pendulum_data, title, save=save)
+    animate_double_pendulum(initials_data, double_pendulum_data, title, save=save, fname=fname, denoise=denoise)
         
     
 def train_and_plot(name=None, replace=False):
@@ -62,7 +63,7 @@ def plot_all_losses():
     rnn = Tensorflow('RNN')
     rnn.train()
     rnn.predict()
-    cnn = Tensorflow('CNN',)
+    cnn = Tensorflow('CNN')
     cnn.train()
     cnn.predict()
     loss = plot_losses(nn, rnn, cnn)
@@ -138,4 +139,26 @@ def paths_traced_pass_obj(name=None, heat=False):
     
     paths_traced(nn, heat)
     
-plot_all_losses()
+    
+def best_configs():
+    """
+    Train and predict using different neural networks with the best found configurations.
+    """
+    nn = Tensorflow(replace=True, alwaysSave=True)
+    nn.train(epochs=50, batch_size=32)
+    nn.predict()
+    rnn = Tensorflow('RNN', replace=True, alwaysSave=True)
+    rnn.train(epochs=20, batch_size=32)
+    rnn.predict()
+    cnn = Tensorflow('CNN', replace=True, alwaysSave=True)
+    cnn.train(epochs=50, batch_size=32)
+    cnn.predict()
+    
+  
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+nn = Tensorflow('RNN')
+nn.train(epochs=20, batch_size=32)
+nn.predict()
+plot_random_sample(nn, save=True, fname='Start')
+# paths_traced(heat=True)
+#overlay_heatmaps(nn)

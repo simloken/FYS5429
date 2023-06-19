@@ -5,3 +5,5 @@ Project/cached/CNN_losses.txt
 Project/cached/NN_losses.txt
 Project/cached/RNN_losses.txt
 *.exe
+Project/data/double_pendulum.txt
+Project/data/initials.txt

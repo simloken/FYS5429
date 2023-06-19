@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+from data import strip_time, read_file
 
 
 def plot_losses(*objs):
@@ -43,7 +44,7 @@ def plot_losses(*objs):
         
     return loss
 
-def animate_double_pendulum(initials, thetas, title='A random, unspecified run', save=None):
+def animate_double_pendulum(initials, thetas, title='A random, unspecified run', save=None, fname=None, denoise=False):
     """
     Animate the motion of a double pendulum.
 
@@ -52,10 +53,12 @@ def animate_double_pendulum(initials, thetas, title='A random, unspecified run',
     - thetas (numpy.ndarray): Angular positions of the pendulum over time.
     - title (str, optional): Title of the animation. Default is 'A random, unspecified run'.
     - save (bool, optional): File path to save the animation as a GIF. Default is None.
+    - fname (str, optional): Define a filename
+    - denoise (bool, optional): Flag to enable denoising. Default is False.
     """
     x = np.random.randint(len(thetas))
-    theta1_vals = thetas[x,:,0]
-    theta2_vals = thetas[x,:,1]
+    theta1_vals = thetas[x, :, 0]
+    theta2_vals = thetas[x, :, 1]
     L1 = initials[x, 0]
     L2 = initials[x, 1]
 
@@ -64,36 +67,87 @@ def animate_double_pendulum(initials, thetas, title='A random, unspecified run',
     x2 = x1 + L2 * np.sin(theta2_vals)
     y2 = y1 - L2 * np.cos(theta2_vals)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, autoscale_on=False, xlim=(-2, 2), ylim=(-2, 2), title=title)
-    ax.set_aspect('equal')
-    ax.grid()
-
-    line, = ax.plot([], [], 'o-', lw=2, color='red')
-    trail, = ax.plot([], [], '-', lw=1, color='gray')
+    if denoise:
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
+        fig.suptitle(title)
+        ax1.set_aspect('equal')
+        ax1.set_xlim(-2, 2)
+        ax1.set_ylim(-2, 2)
+        ax1.grid()
+        ax1.set_title('Original Motion')    
+        line1, = ax1.plot([], [], 'o-', lw=2, color='red')
+        trail1, = ax1.plot([], [], '-', lw=1, color='gray')
+        ax2.set_aspect('equal')
+        ax2.set_xlim(-2, 2)
+        ax2.set_ylim(-2, 2)
+        ax2.grid()
+        ax2.set_title('Denoised Motion')
+        line2, = ax2.plot([], [], 'o-', lw=2, color='blue')
+        trail2, = ax2.plot([], [], '-', lw=1, color='gray')
+    else:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, autoscale_on=False, xlim=(-2, 2), ylim=(-2, 2), title=title)
+        ax.set_aspect('equal')
+        ax.grid()
+        line1, = ax.plot([], [], 'o-', lw=2, color='red')
+        trail1, = ax.plot([], [], '-', lw=1, color='gray')
+        
+        
 
     def init():
-        line.set_data([], [])
-        trail.set_data([], [])
-        return line, trail
+        line1.set_data([], [])
+        trail1.set_data([], [])
+        if denoise:
+            line2.set_data([], [])
+            trail2.set_data([], [])
+            return line1, trail1, line2, trail2
+        return line1, trail1
 
     def animate(i):
-        x_vals = [0, x1[i], x2[i]]
-        y_vals = [0, y1[i], y2[i]]
-        line.set_data(x_vals, y_vals)
+        x_vals1 = [0, x1[i], x2[i]]
+        y_vals1 = [0, y1[i], y2[i]]
+        line1.set_data(x_vals1, y_vals1)
 
-        trail_length = 100
-        if i >= trail_length:
-            trail_x = x2[i - trail_length:i]
-            trail_y = y2[i - trail_length:i]
+        if denoise:
+            smoothed_x2 = np.convolve(x2, np.ones(10) / 10, mode='same')
+            smoothed_y2 = np.convolve(y2, np.ones(10) / 10, mode='same')
+
+            smoothed_x1 = x1 + smoothed_x2 - x2
+            smoothed_y1 = y1 + smoothed_y2 - y2
+
+            line2.set_data([0, smoothed_x1[i], smoothed_x2[i]], [0, smoothed_y1[i], smoothed_y2[i]])
+
+            trail_length = 100
+            if i >= trail_length:
+                trail_x2 = smoothed_x2[i - trail_length:i]
+                trail_y2 = smoothed_y2[i - trail_length:i]
+                trail_x1 = x2[i - trail_length:i]
+                trail_y1 = y2[i - trail_length:i]
+            else:
+                trail_x2 = np.concatenate((smoothed_x2[:i], smoothed_x2[:i][::-1]))
+                trail_y2 = np.concatenate((smoothed_y2[:i], smoothed_y2[:i][::-1]))
+                trail_x1 = np.concatenate((x2[:i], x2[:i][::-1]))
+                trail_y1 = np.concatenate((y2[:i], y2[:i][::-1]))
+
+            trail2.set_data(trail_x2, trail_y2)
+            trail1.set_data(trail_x1, trail_y1)
+            
+            return line1, trail1, line2, trail2
+        
         else:
-            trail_x = np.concatenate((x2[:i], x2[:i][::-1]))
-            trail_y = np.concatenate((y2[:i], y2[:i][::-1]))
+            trail_length = 100
+            if i >= trail_length:
+                trail_x2 = x2[i - trail_length:i]
+                trail_y2 = y2[i - trail_length:i]
+            else:
+                trail_x2 = np.concatenate((x2[:i], x2[:i][::-1]))
+                trail_y2 = np.concatenate((y2[:i], y2[:i][::-1]))
 
-        trail.set_data(trail_x, trail_y)
+            trail1.set_data(trail_x2, trail_y2)
+        
 
-        return line, trail
-    
+            return line1, trail1
+
     keyframes = np.arange(0, len(theta1_vals), 3)
 
     ani = animation.FuncAnimation(fig, animate, frames=keyframes,
@@ -107,16 +161,18 @@ def animate_double_pendulum(initials, thetas, title='A random, unspecified run',
         saveStr = 'NN'
     elif 'RK4' in title:
         saveStr = 'RK4'
-    else:
-        saveStr = '0'
-    
-    
     if save:
-        ani.save('../figures/randomly_sampled_run_%s.gif' %saveStr, writer='pillow')
+        if fname:
+                ani.save('../figures/%s.gif' % fname, writer='pillow')
+        elif not denoise:
+            ani.save('../figures/updated_randomly_sampled_run_%s.gif' % saveStr, writer='pillow')
+        else:
+            ani.save('../figures/updated_randomly_sampled_run_%s_with_denoise.gif' % saveStr, writer='pillow')
 
     plt.show()
+
     
-def plot_traced_path(initials, thetas, title, heat=False):
+def plot_traced_path(initials, thetas, title, heat=False, retPlot=False):
     """
    Plot the traced path of a double pendulum.
 
@@ -128,13 +184,17 @@ def plot_traced_path(initials, thetas, title, heat=False):
    """
     L1 = initials[:, 0]
     L2 = initials[:, 1]
-    plt.figure()
+    if not retPlot:
+        plt.figure()
     if heat:
         all_x = np.concatenate([L1[i] * np.sin(thetas[i, :, 0]) + L2[i] * np.sin(thetas[i, :, 1]) for i in range(thetas.shape[0])])
         all_y = np.concatenate([-L1[i] * np.cos(thetas[i, :, 0]) - L2[i] * np.cos(thetas[i, :, 1]) for i in range(thetas.shape[0])])
+        if retPlot:
+            return all_x, all_y
 
         plt.hist2d(all_x, all_y, bins=100, cmap='hot', alpha=0.8)
         plt.colorbar(label='Density')
+        
     
     else:
         if thetas.shape[1] > 50:
@@ -146,9 +206,45 @@ def plot_traced_path(initials, thetas, title, heat=False):
             x = L1[i] * np.sin(theta1) + L2[i] * np.sin(theta2)
             y = -L1[i] * np.cos(theta1) - L2[i] * np.cos(theta2)    
             plt.plot(x, y, color='grey', alpha=0.4)
+            
+    
         
     plt.xlabel('x')
     plt.ylabel('y')
     plt.title(title)
     plt.grid(True)
     plt.show()
+    
+def overlay_heatmaps(obj):
+    """
+   Overlay heatmaps generated from RK4 and predicted values.
+
+   Parameters:
+   - obj (object): A trained NN object
+   """
+    initials_data = read_file('../data/initials.txt')
+    double_pendulum_data = strip_time(read_file('../data/double_pendulum.txt', collapse=True))
+    rkx, rky = plot_traced_path(initials_data, double_pendulum_data, 'None', True, True)
+    initials_data = obj.initial_test
+    double_pendulum_data = obj.predict(verbose=False)
+    nnx, nny = plot_traced_path(initials_data, double_pendulum_data, 'None', True, True)
+    nnL = len(nnx)
+    x = np.random.randint(0, len(rkx)-nnL)
+
+    rkx = rkx[x:x+nnL]
+    rky = rky[x:x+nnL]
+    rkheatmap, xedges, yedges = np.histogram2d(rkx,rky, bins=250)
+    extent = [xedges[0], xedges[-1], yedges[0], yedges[-1]]
+    nnheatmap, _, _ = np.histogram2d(nnx,nny, bins=250)
+    diff = np.abs(rkheatmap-nnheatmap)
+    
+    plt.figure()
+    plt.imshow(diff.T, extent=extent, origin='lower', cmap='hot')
+    plt.colorbar(label='Overlap (lower is better)')
+    plt.title('Comparing heatmaps between RK4 and %s predicted values\n' % obj.typeStr)
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.grid(True)
+    plt.show()
+
+

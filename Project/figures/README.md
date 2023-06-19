@@ -1,3 +1,5 @@
 # Figures
 
-A bunch of figures. Most are used in the report outside of the .gifs
+>presentation_figures
+
+Contains figures not used in the report but instead used in an oral presentation regarding the project

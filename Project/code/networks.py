@@ -77,6 +77,8 @@ class Tensorflow:
         self.splitData(self.ratio)
         self.model = self.Model()
         
+        tf.config.optimizer.set_jit(True)
+        
         
         
         if replace==False:
@@ -110,35 +112,54 @@ class Tensorflow:
         input1 = tf.keras.layers.Input(shape=(8,))
         input2 = tf.keras.layers.Input(shape=(1000, 2))
         
+        
         if self.NNType == 'RNN':
             self.typeStr = 'RNN'
-            rnn_output = tf.keras.layers.LSTM(units=64, return_sequences=True)(input2)
+            regu = 0.0002
+            loss = 'mae'
+            acti=None
+            rnn_output = tf.keras.layers.LSTM(units=32, return_sequences=True, activation='relu')(input2)
+            rnn_output = tf.keras.layers.LSTM(units=16, return_sequences=True, activation='linear')(rnn_output)
             rnn_output = tf.keras.layers.Flatten()(rnn_output)
-            rnn_output = tf.keras.layers.Dropout(0.3)(rnn_output)
+            rnn_output = tf.keras.layers.Dropout(0.15)(rnn_output)
             concat_output = tf.keras.layers.concatenate([input1, rnn_output])
-            optimizer = tf.keras.optimizers.Adam(learning_rate=0.0005)
-
+            concat_output = tf.keras.layers.Dense(units=8, activation='relu')(concat_output)
+            optimizer = tf.keras.optimizers.Adam(learning_rate=0.00025)
+            
         elif self.NNType == 'CNN':
             self.typeStr = 'CNN'
+            regu = 0.001
+            loss = 'mae'
+            acti='linear'
             reshape_input2 = tf.keras.layers.Reshape((1000, 2, 1))(input2)
-            conv_output = tf.keras.layers.Conv2D(filters=64, kernel_size=(2, 1), activation='relu')(reshape_input2)
+            conv_output = tf.keras.layers.Conv2D(filters=16, kernel_size=(3, 1), activation='relu')(reshape_input2)
+            conv_output = tf.keras.layers.MaxPooling2D(pool_size=(2, 1))(conv_output)
             flatten_output = tf.keras.layers.Flatten()(conv_output)
-            flatten_output = tf.keras.layers.Dropout(0.3)(flatten_output)
+            flatten_output = tf.keras.layers.Dropout(0.5)(flatten_output)
             concat_output = tf.keras.layers.concatenate([input1, flatten_output])
-            optimizer = tf.keras.optimizers.Adam(learning_rate=0.0005)
+            concat_output = tf.keras.layers.Dense(units=16, activation='relu')(concat_output)
+            optimizer = tf.keras.optimizers.Adam(learning_rate=0.0003)
+            
+
         else:
             self.typeStr = 'NN'
+            regu = 0.001
+            loss = 'mae'
+            acti=None
             flatten_input = tf.keras.layers.Flatten()(input2)
+            flatten_input = tf.keras.layers.Dense(units=128, activation='relu')(flatten_input)
+            flatten_input = tf.keras.layers.Dense(units=64, activation='linear')(flatten_input)
             flatten_input = tf.keras.layers.Dropout(0.3)(flatten_input)
             concat_output = tf.keras.layers.concatenate([input1, flatten_input])
-            optimizer = 'adam'
+            optimizer = tf.keras.optimizers.Adam(learning_rate=0.00075)
+
         
-        output = tf.keras.layers.Dense(units=1000*2, kernel_regularizer=tf.keras.regularizers.l2(0.0005))(concat_output)  # Adjusted output shape
+        output = tf.keras.layers.Dense(units=1000*2, activation=acti, kernel_regularizer=tf.keras.regularizers.l2(regu))(concat_output)
         
         model = tf.keras.Model(inputs=[input1, input2], outputs=output)
                    
         
-        model.compile(optimizer=optimizer, loss='mse', loss_weights=[1.0, 1.0])
+        model.compile(optimizer=optimizer, loss=loss)
         
         return model
     
@@ -185,7 +206,7 @@ class Tensorflow:
         Split the data into training and testing sets based on the specified ratio.
 
         Parameters:
-        ratio (float): The ratio of data to be used for training.
+        - ratio (float): The ratio of data to be used for training.
 
         Note:
         This method reads the initial conditions and solution data files, splits them into training and testing sets, and assigns them to the respective attributes of the class.
@@ -201,13 +222,13 @@ class Tensorflow:
         self.result_train = result_train
         self.result_test = result_test
     
-    def train(self, epochs=10, batch_size=32):
+    def train(self, epochs=10, batch_size=64):
         """
         Train the neural network model.
     
         Parameters:
         - epochs (int): Number of training epochs. Default is 10.
-        - batch_size (int): Batch size for training. Default is 32.
+        - batch_size (int): Batch size for training. Default is 64.
     
         Note:
         This method fits the model using the provided training data and saves the trained model, scalers, and loss history.
@@ -228,19 +249,7 @@ class Tensorflow:
                                                         restore_best_weights=True)
         
         self.model.fit([x1, x2], x2.reshape(-1, 1000*2), epochs=epochs, batch_size=batch_size, callbacks=[loss, early_stopping])
-        
-        if not self.alwaysSave:
-            if self.typeStr == 'CNN':
-                confirm = str(input("Warning!\nConvolutional Neural Networks tend to be quite big, and in this case approaches 3Gb.\n\nDo you still wish to cache this model? [y/n]\n"))
-                if confirm.lower() == 'n':
-                    self.is_trained = True
-                    return
-            elif self.typeStr == 'RNN':
-                confirm = str(input("Warning!\nRecurrent Neural Networks tend to be quite big, and in this case approaches 1.5Gb.\n\nDo you still wish to cache this model? [y/n]\n"))
-                if confirm.lower() == 'n':
-                    self.is_trained = True
-                    return
-            
+                    
         self.model.save('../cached/%s_model.h5'%(self.typeStr))
         joblib.dump(self.initial_scaler, '../cached/%s_scalerx1.pk1' %(self.typeStr))
         joblib.dump(self.result_scaler, '../cached/%s_scalerx2.pk1' %(self.typeStr))
